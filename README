@@ -1,1 +1,17 @@
-Hello World
+This is the first working version of the SNe Pipeline for adding fakes to galaxies in the PTF Pipeline.
+
+It does not yet have the 40 mask area around each fake.
+
+NEED TO ADD:
+
+-Somewhere to save the background level before the fake is in serted
+-Noise in the background
+
+-Record Fluxes
+	-At pixel where fake is added
+	-3x3 grid around pixel 
+	-5x5 grid
+	-7x7
+
+-Would like to do photometry where the star is placed, but before the star is placed there.
+
