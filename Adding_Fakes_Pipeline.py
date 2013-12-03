@@ -331,7 +331,7 @@ def Scaling(science_image ,xcord, ycord, mag_array, flux_array, background_array
 #----------GALAXY BIASING----------------------------------NEW----------!!!!!!!!!!!!!!!!!!!
 
 
-def add_fakes(science_image):
+def add_fakes(science_image): #This randomly adds fakes to anywhere  in the image 
 
 	try:
 		os.remove(science_image+'_WITH_FAKES.fits') #removes a file if it has the same name because astropy doesn't like overwriting existing files
@@ -410,7 +410,7 @@ def add_fakes_2galaxy(science_image):
 	#This step finds the galaxies and adds fake stars to them
 	h=open('Galaxies/'+science_image+'_Galaxy_Catalog.cat') #Opens the Galaxy catalog
 	f=open('Fake_Star_Catalog/'+science_image+'_Fake_Star_Catalog.dat') #Opens the fake star catalog
-	g=open('Fake_Star_Catalog/Fakes_Star_Regions.reg','w') #creates region file
+	g=open('Fake_Star_Catalog/'+science_image+'Fakes_Star_Regions.reg','w') #creates region file
 	hin=h.readline() #reads first line
 	fin=f.readline() #reads first line
 
@@ -521,24 +521,33 @@ def Execute(run):
 
 	try:
 		hdulist_multi_sci=fits.open(science_image+'.fits')
-		hdulist_multi_mask=fits.open(maskfile+'.fits')
-	except IOError or Warning:
+		#print '++++ multi_mask assign ', science_image
+		
+		zeropoint=float(hdulist_multi_sci[0].header['IMAGEZPT'])
+		seeing=float(hdulist_multi_sci[0].header['SEEING'])
+		saturation=float(hdulist_multi_sci[0].header['SATURVAL'])
+		gain=float(hdulist_multi_sci[0].header['GAIN'])
+
+		fake_stars= 100 #number of fake stars per image (integer please!)
+
 		hdulist_multi_sci.close()
-		hdulist_multi_mask.close()
+			
+		
+
+	except IOError or Warning or UnboundLocalError:
+		hdulist_multi_sci.close()
+		
 		shutil.move(science_image+'.fits','Bad_Images/')
 		shutil.move(maskfile+'.fits','Bad_Images/')
 		return
 
-	zeropoint=float(hdulist_multi_sci[0].header['IMAGEZPT'])
-	seeing=float(hdulist_multi_sci[0].header['SEEING'])
-	saturation=float(hdulist_multi_sci[0].header['SATURVAL'])
-	gain=float(hdulist_multi_sci[0].header['GAIN'])
-
-	fake_stars= 200 #number of fake stars per image (integer please!)
-
-	hdulist_multi_sci.close()
-	hdulist_multi_mask.close()
-	
+	try:
+		multi_mask=fits.open(maskfile+'.fits')
+		multi_mask.close()
+	except IOError or Warning or UnboundLocalError:
+		shutil.move(science_image+'.fits','Bad_Images/')
+		shutil.move(maskfile+'.fits','Bad_Images/')
+		return
 	
 
 	weight_map(maskfile, science_image)
@@ -579,7 +588,7 @@ def Execute(run):
 
 file_structure()
 manager=Manager()
-data_inputs=manager.list([])
+data_inputs=[]
 #pwd=os.getcwd()
 for files in glob.glob('*.fits'):
 	full_file=os.path.splitext(files)[0]
