@@ -9,7 +9,7 @@
 #!!!!!!!!!!!!!!!!IMPORTANT!!!!!!!!!!!!!--- YOU NEED THE MODULES BELOW
 
 import numpy, os, random, pylab, glob, shutil, time, subprocess
-from multiprocessing import Process, Queue, Pool, Manager
+from multiprocessing import Pool
 from astropy.io import fits
 
 
@@ -24,8 +24,6 @@ def file_structure():
 		os.makedirs('Fakes')	
 	if not os.path.exists('Galaxies'):
 		os.makedirs('Galaxies')
-	if not os.path.exists('Fakes_Hist'):
-		os.makedirs('Fakes_Hist')
 	if not os.path.exists('Bad_Images'):
 		os.makedirs('Bad_Images')
 
@@ -88,7 +86,7 @@ def Sex_file_maker(science_image,zeropoint,seeing,saturation,gain): #Taken from 
 #---THIS STEP WILL CREATE THE .cat FILE
 def Sextract(science_image,zeropoint,seeing,saturation,gain): #Taken from Create_sexed_catalog.py
 	#'sex -c '+science_image+'_Custom_Sex.sex '+science_image+'.fits -PARAMETERS_NAME PTF_Transform_Param.param -FILTER_NAME default.conv'
-	subprocess.call('sex -c Pipe_sexfile_CMD.sex '+science_image+'.fits -PARAMETERS_NAME PTF_Transform_Param.param -FILTER_NAME default.conv -CATALOG_NAME Catalog/'+str(science_image)+'_Catalog.cat -WEIGHT_IMAGE Weight_Map/'+str(science_image)+'_Weight_map.fits -MAG_ZEROPOINT'+'	'+str(zeropoint)+' -SEEING_FWHM '+str(seeing)+' -SATUR_LEVEL '+str(saturation)+' -GAIN '+str(gain),shell=True)
+	subprocess.call('sex -c Pipe_sexfile_CMD.sex '+science_image+'.fits -PARAMETERS_NAME PTF_Transform_Param.param -FILTER_NAME default.conv -CATALOG_NAME Catalog/'+str(science_image)+'_Catalog.cat -WEIGHT_IMAGE Weight_Map/'+str(science_image)+'_Weight_map.fits -MAG_ZEROPOINT'+'	'+str(zeropoint)+' -SEEING_FWHM '+str(seeing)+' -SATUR_LEVEL '+str(saturation)+' -GAIN '+str(gain)+' -VERBOSE_TYPE QUIET',shell=True)
 
 def Enough_Objects(science_image):
 	enough=True
@@ -150,7 +148,7 @@ def Selecting_Bright(science_image):
 	f.close()
 	return xcord, ycord, mag_array, flux_array, background_array
 
-def selecting_galaxies(science_image):
+def selecting_galaxies(science_image,):
 	f=open('Catalog/'+science_image+'_Catalog.cat')
 	g=open('Galaxies/'+science_image+'_Galaxy_Catalog.cat','w')
 	l=open('Galaxies/'+science_image+'_Galaxy_regions.reg','w')
@@ -196,47 +194,13 @@ def selecting_galaxies(science_image):
 				
 		fin=f.readline()
 
-#!!!!!!!!!!!!!!!---------------UNCOMMENT  THE PYLAB STUFF BELOW FOR CHARATERISTICS OF THE STARS AND GLAXAIES WHICH YOU CAN USE TO DEFINE THE BOUNDARIES OF YOUR GALAXY SELECTION------------------!!!!!!!!!!!!!!!!
-
-		
-		
-	'''
-	
-	#pylab.figure(figsize=(70,70))
-	pylab.subplot(2,2,1)
-	pylab.xlabel('FWHM (Pixels)')
-	pylab.ylabel('Number of Objects')
-	pylab.title('FWHM Histogram')
-	pylab.hist(FWHM_array,bins=200)
-	#pylab.savefig('Galaxy_FWHM_Histogram')
-	
-	pylab.subplot(2,2,2)
-	pylab.ylim([0,6])
-	pylab.xlim([0,6])	
-	pylab.xlabel('X2')
-	pylab.ylabel('Y2')
-	pylab.title('2nd Moments')
-	pylab.scatter(X2_array,Y2_array,s=8,color='r') #Temp addition
-
-	pylab.subplot(2,2,3)
-	pylab.xlabel('ELLIPTICITY')
-	pylab.ylabel('Number')
-	pylab.hist(Ellipticity_array,bins=20)
-	#pylab.savefig('2nd_Order')
-
-	pylab.subplot(2,2,4)
-	pylab.xlabel('Class 0=Star 1=Galaxy')
-	pylab.ylabel('Number')
-	pylab.hist(class_s_array,bins=100)
-	pylab.savefig('Characteristics',dpi=300)
-	pylab.show()#Temp addition
-'''
 	f.close()
 	g.close()
 	l.close()
 	m.close()
 	
 	#galaxy_image(science_image, counts)
+
 
 def galaxy_image(science_image, count):
 	k=open('Galaxies/'+science_image+'_Galaxy_Catalog.cat')
@@ -306,7 +270,7 @@ def galaxy_image(science_image, count):
 	k.close()
 	#print square
 
-def Scaling(science_image ,xcord, ycord, mag_array, flux_array, background_array, zpt, fake_stars):
+def Scaling(science_image ,xcord, ycord, mag_array, flux_array, background_array, zpt, fake_stars, CCD_Num):
 	f=open('Fake_Star_Catalog/'+science_image+'_Fake_Star_Catalog.dat','w') #--This will need to be file specific at a later date #RESOLVED 29-10-13 15:31
 	#print 'lengths', len(mag_array), len(flux_array)
 	ranmagarray=[]
@@ -322,7 +286,7 @@ def Scaling(science_image ,xcord, ycord, mag_array, flux_array, background_array
 		newY=random.uniform(100.0, 3996.0)#no edge stars
 		#print background_array[star]
 		#'Old X', 'Old Y', 'New X', 'New Y', 'Old Mag', 'Old Flux', 'New Mag', 'New Flux', 'Scaling Factor' 		
-		f.write(str(xcord[star])+' '+str(ycord[star])+' '+str(newX)+' '+str(newY)+' '+str(mag_array[star])+' '+str(flux_array[star])+' '+str(ran_mag)+' '+str(ran_flux)+' '+str(background_array[star])+' '+str(scaling_factor)+'\n')
+		f.write(str(xcord[star])+' '+str(ycord[star])+' '+str(newX)+' '+str(newY)+' '+str(mag_array[star])+' '+str(flux_array[star])+' '+str(ran_mag)+' '+str(ran_flux)+' '+str(background_array[star])+' '+str(scaling_factor)+' '+str(CCD_Num)+'\n')
 		
 		i+=1
 	#pylab.hist(ranmagarray, bins=8)
@@ -331,86 +295,12 @@ def Scaling(science_image ,xcord, ycord, mag_array, flux_array, background_array
 #----------GALAXY BIASING----------------------------------NEW----------!!!!!!!!!!!!!!!!!!!
 
 
-def add_fakes(science_image): #This randomly adds fakes to anywhere  in the image 
 
-	try:
-		os.remove(science_image+'_WITH_FAKES.fits') #removes a file if it has the same name because astropy doesn't like overwriting existing files
-		#print 'Old ', science_image, 'WITH_FAKES.fits was removed, new file will be written'
-	except OSError:
-		pass
-		
-	f=open('Fake_Star_Catalog/'+science_image+'_Fake_Star_Catalog.dat')
-	g=open('Fake_Star_Catalog/'+science_image+'_Fakes_Star_Regions.reg','w')
-
-	hdulist_sci= fits.open(science_image+'.fits',ignore_missing_end=True)
-	
-	science_data= hdulist_sci[0].data
-	
-	star_count=1
-	fin=f.readline()
-	while fin:
-		ln=fin.split()
-		oldx=float(ln[0])
-		oldy=float(ln[1])
-		newx=float(ln[2])
-		newy=float(ln[3])
-		scale_fac=float(ln[-1])
-		back=float(ln[-2])
-		print back
-
-		g.write(str(newx)+' '+str(newy)+'\n')
-		
-		#8x8 pixel box around star will be drawn
-		
-		#---Old area to be scaled---
-		startx=int(oldx-4.0)
-		starty=int(oldy-4.0)		
-		finx=int(oldx+4.0)
-		finy=int(oldy+4.0)
-		
-		#---New area to have flux added---
-		Nstartx=newx-4.0
-		Nstarty=newy-4.0
-		Nfinx=newx+4.0
-		Nfiny=newy+4.0
-				
-		
-		newdata=numpy.ones((8,8))
-
-		newdata[0:8,0:8]=(((science_data[starty:finy,startx:finx]))-back)*scale_fac
-		#print newdata
-		#print science_data[starty:finy,startx:finx], back, scale_fac
-		'''
-		k=open('Fakes_Hist/'+science_image+'Fakes_Hist_'+str(star_count)+'.dat','w')
-		ny=0
-		for y in range(starty,finy):
-			nx=0
-			for x in range(startx, finx):
-				newdata[ny,nx]=	((science_data[y,x]-back)*scale_fac)#BACKGROUND HAS BEEN SUBTRACTED: ADDITION 30-10-13 21:08
-				k.write(str(newdata[ny,nx])+' '+str(ny)+' '+str(nx)+' '+str(science_data[y,x])+' '+str(y)+' '+str(x)+' '+str(scale_fac)+'\n')
-				nx+=1
-			ny+=1'''
-		science_data[Nstarty:Nfiny, Nstartx:Nfinx]= (science_data[Nstarty:Nfiny, Nstartx:Nfinx]) + newdata
-		star_count+=1
-		fin=f.readline()
-	f.close()
-	#k.close()
-	g.close()
-	try:
-		os.remove('Fakes/'+science_image+'_WITH_FAKES.fits') #removes a file if it has the same name because astropy doesn't like overwriting existing files
-		#print 'Old Fake Removed'
-	except OSError:
-		pass
-		
-	hdulist_sci.writeto('Fakes/'+science_image+'_WITH_FAKES.fits')
-	
-	#print 'Fake Stars Added to: ', science_image
-
-def add_fakes_2galaxy(science_image):
+def add_fakes_2galaxy(science_image,boxsize):
 	#This step finds the galaxies and adds fake stars to them
 	h=open('Galaxies/'+science_image+'_Galaxy_Catalog.cat') #Opens the Galaxy catalog
 	f=open('Fake_Star_Catalog/'+science_image+'_Fake_Star_Catalog.dat') #Opens the fake star catalog
-	g=open('Fake_Star_Catalog/'+science_image+'Fakes_Star_Regions.reg','w') #creates region file
+	reg=open('Fake_Star_Catalog/'+science_image+'_Fakes_Star_Regions.reg','w') #creates region file
 	hin=h.readline() #reads first line
 	fin=f.readline() #reads first line
 
@@ -431,6 +321,8 @@ def add_fakes_2galaxy(science_image):
 	#print len(fake_star_array), ' Fake Stars have been added to ', len(fake_star_array), ' Galaxies'
 	#print gal_line_array[1]
 	#print len(gal_line_array)
+	
+	j=open('Fakes/'+science_image+'_Flux_Boxes.dat','w')
 	for i in range(0,len(fake_star_array)): #Will only add 200 fake stars to 200 Galaxies
 		host_galaxy=gal_line_array.pop(random.randrange(0,len(gal_line_array))) #selecting a random host galaxy. Used .pop() so that the same galaxy isnt chosen twice
 		source_star=fake_star_array.pop(random.randrange(0,len(fake_star_array))) #selecting a random source star. Used .pop() so that the same star isnt chosen twice
@@ -472,11 +364,42 @@ def add_fakes_2galaxy(science_image):
 		newx=fake_star_positon[0] #where the star will go x
 		newy=fake_star_positon[1] #where the star will go y
 
-		g.write(str(newx)+' '+str(newy)+'\n') #fake star region file
+		#Saving Flux info Pre Fakes Addition
 
-		scale_fac=float(kn[-1]) #scale factor
-		back=float(kn[-2]) #background
-
+		pixel_fluxes=[]
+		
+		#print science_image
+		#print 'newx newy sci:	', newx, newy, (science_data[newy,newx])
+		pixel_fluxes.append((science_data[newy,newx]))
+		for s in boxsize:
+			start_box_x=newx-int(s/2)
+			fin_box_x=newx+int(s/2)+1
+			start_box_y=newy-int(s/2)
+			fin_box_y=newy+int(s/2)+1
+			#print 'Box X Dimensions: ', fin_box_x - start_box_x
+			#print 'Box Y Dimensions: ', fin_box_y - start_box_y
+			Box_Matrix=[[0 for x in xrange(s)] for x in xrange(s)]
+			#print Box_Matrix
+			countg=0
+			
+			for g in range (start_box_y,fin_box_y):
+				counth=0
+				for h in range(start_box_x,fin_box_x):
+					Box_Matrix[countg][counth]=(science_data[g,h])
+					#print Box_Matrix[countg][counth]
+					counth+=1
+					#print Box_Matrix
+				countg+=1
+			pixel_fluxes.append(Box_Matrix)
+					
+			#print 's newx newy sci:	', s, newx, newy, (science_data[newy,newx])
+		j.write(str(pixel_fluxes)+'\n')
+		
+		reg.write(str(newx)+' '+str(newy)+'\n') #fake star region file
+		
+		scale_fac=float(kn[9]) #scale factor
+		back=float(kn[8]) #background
+		
 		#---Old area to be scaled---
 		startx=int(sourcex-4.0)
 		starty=int(sourcey-4.0)		
@@ -496,15 +419,24 @@ def add_fakes_2galaxy(science_image):
 
 		science_data[Nstarty:Nfiny, Nstartx:Nfinx]= (science_data[Nstarty:Nfiny, Nstartx:Nfinx]) + newdata #Modifying the science image
 		
-		try:
-			os.remove('Fakes/'+science_image+'_WITH_FAKES.fits') #removes a file if it has the same name because astropy doesn't like overwriting existing files
-			print 'Old Fake Removed'
-		except OSError:
-			pass
+		
+
+
+
+	try:
+		os.remove('Fakes/'+science_image+'_WITH_FAKES.fits') #removes a file if it has the same name because astropy doesn't like overwriting existing files
+		#print 'Old Fake Removed'
+	except OSError:
+		pass
 		
 	hdulist_sci.writeto('Fakes/'+science_image+'_WITH_FAKES.fits') #Saving image after loop of 200 Stars is complete
-	
+	j.close()
+	reg.close()	
 	print 'Fake Stars Added to Galaxies in the Image: ', science_image
+
+
+
+
 
 def Execute(run):
 	#print '!!!!!!', run	
@@ -522,25 +454,12 @@ def Execute(run):
 	try:
 		hdulist_multi_sci=fits.open(science_image+'.fits')
 		#print '++++ multi_mask assign ', science_image
-		
-		zeropoint=float(hdulist_multi_sci[0].header['IMAGEZPT'])
-		seeing=float(hdulist_multi_sci[0].header['SEEING'])
-		saturation=float(hdulist_multi_sci[0].header['SATURVAL'])
-		gain=float(hdulist_multi_sci[0].header['GAIN'])
-
-		fake_stars= 100 #number of fake stars per image (integer please!)
-
-		hdulist_multi_sci.close()
-			
-		
-
 	except IOError or Warning or UnboundLocalError:
 		hdulist_multi_sci.close()
 		
 		shutil.move(science_image+'.fits','Bad_Images/')
 		shutil.move(maskfile+'.fits','Bad_Images/')
 		return
-
 	try:
 		multi_mask=fits.open(maskfile+'.fits')
 		multi_mask.close()
@@ -548,8 +467,17 @@ def Execute(run):
 		shutil.move(science_image+'.fits','Bad_Images/')
 		shutil.move(maskfile+'.fits','Bad_Images/')
 		return
-	
+		
+	zeropoint=float(hdulist_multi_sci[0].header['IMAGEZPT'])
+	seeing=float(hdulist_multi_sci[0].header['SEEING'])
+	saturation=float(hdulist_multi_sci[0].header['SATURVAL'])
+	gain=float(hdulist_multi_sci[0].header['GAIN'])
+	CCD_Num=float(hdulist_multi_sci[0].header['CCDID'])
 
+
+	fake_stars= 100 #number of fake stars per image (integer please!)
+
+	hdulist_multi_sci.close()
 	weight_map(maskfile, science_image)
 	#print '@@@@@ WEIGHTMAP CREATED ', science_image 
 	#Adding Weight_Map
@@ -559,7 +487,7 @@ def Execute(run):
 	catsize=Enough_Objects(science_image)
 	#print '@@@@@Enough_Objects Done'
 	if catsize==False:
-			print science_image, 'didn\'t have enough objects detected so it was moved to Bad_Images/ and the newly created weight map, sex file and catalog have been deleted'
+			#print science_image, 'didn\'t have enough objects detected so it was moved to Bad_Images/ and the newly created weight map, sex file and catalog have been deleted'
 			shutil.move(science_image+'.fits','Bad_Images/')
 			shutil.move(maskfile+'.fits','Bad_Images/')
 			os.remove('Weight_Map/'+science_image+'_Weight_Map.fits')
@@ -570,25 +498,27 @@ def Execute(run):
 	#print 'Sextract done'
 	x, y, mag, flux, back = Selecting_Bright(science_image)
 	#print '@@@@ SELECTING BRIGHT DONE'
-	print len(x)
+	#print len(x)
 	if len(x)<2:
-			print 'Not enough Objects met the source star criteria in ', science_image
+			#print 'Not enough Objects met the source star criteria in ', science_image
 			shutil.move(science_image+'.fits','Bad_Images/')
 			shutil.move(maskfile+'.fits','Bad_Images/')
 			os.remove('Weight_Map/'+science_image+'_Weight_Map.fits')
 			os.remove('Catalog/'+science_image+'_Catalog.cat')
 			return
 	#print '@@@@@LENGTH IS TRUE'
-	Scaling(science_image, x, y, mag, flux, back, zeropoint, fake_stars)
+	Scaling(science_image, x, y, mag, flux, back, zeropoint, fake_stars, CCD_Num)
 	#print '@@@@Scaling done'
 	selecting_galaxies(science_image)
-	add_fakes_2galaxy(science_image)
+	boxsize=[3,5,7]
+	add_fakes_2galaxy(science_image,boxsize)
 
 #-----------------------------------RUN PIPELINE------------------------------------------
 
 file_structure()
-manager=Manager()
+
 data_inputs=[]
+
 #pwd=os.getcwd()
 for files in glob.glob('*.fits'):
 	full_file=os.path.splitext(files)[0]
@@ -597,8 +527,8 @@ for files in glob.glob('*.fits'):
 		data_inputs.append([(str(ln[0])+'_'+str(ln[1])+'_'+str(ln[2])+'_'+str(ln[3]))+'_','_'+str(ln[5])+'_'+str(ln[6])+'_'+str(ln[7])+'_'+str(ln[8])+'_'+str(ln[9])])
 #print data_inputs
 #for  run in data_inputs:
-
-pool=Pool(processes=4)
+processors=4
+pool=Pool(processors)
 
 pool.map(Execute,data_inputs)
 
